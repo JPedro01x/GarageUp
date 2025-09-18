@@ -1,0 +1,10 @@
+com\example\garagem\dto\ConfigRequest.class
+com\example\garagem\GaragemApplication.class
+com\example\garagem\dto\StatusResponse.class
+com\example\garagem\dto\SaidaRequest.class
+com\example\garagem\model\Registro.class
+com\example\garagem\controller\EstacionamentoController.class
+com\example\garagem\dto\EntradaRequest.class
+com\example\garagem\model\Veiculo.class
+com\example\garagem\service\EstacionamentoService.class
+com\example\garagem\model\TipoVeiculo.class
