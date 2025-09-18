@@ -87,8 +87,10 @@ function toast(msg, type='info') {
     danger: 'bg-rose-600',
   };
   const el = document.createElement('div');
-  el.className = `px-4 py-2 text-sm text-white rounded-lg shadow ${colors[type]||colors.info} toast-enter`;
-  el.textContent = msg;
+  el.className = `px-4 py-2 text-sm text-white rounded-lg shadow ${colors[type]||colors.info} modal-enter interactive-element`;
+  
+  // Adiciona efeito de entrada animada do Animate.css
+  el.classList.add('animate__animated', 'animate__fadeInDown');
   const cont = $('#toast-container');
   
   // Add icon based on type
@@ -115,8 +117,10 @@ function toast(msg, type='info') {
 
 async function carregarStatus() {
   try {
+    console.log('Iniciando carregamento do status...');
     showSkeleton(true);
     const s = await api.status();
+    console.log('Status recebido:', s);
     // KPIs com countUp
     countUp($('#capacidade'), s.capacidade);
     countUp($('#ocupadas'), s.ocupadas);
@@ -131,7 +135,7 @@ async function carregarStatus() {
     for (let i = 1; i <= s.capacidade; i++) {
       const livre = !ocupadasSet.has(i);
       const b = document.createElement('span');
-      b.className = `inline-flex items-center px-2 py-1 text-xs rounded-full ring-1 me-2 mb-2 cursor-default transition-all duration-300 hover-scale ${livre ? 'bg-emerald-100 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:ring-emerald-700/40 hover:bg-emerald-200 dark:hover:bg-emerald-800/40' : 'bg-rose-100 text-rose-700 ring-rose-200 dark:bg-rose-900/40 dark:text-rose-300 dark:ring-rose-700/40 cursor-pointer hover:bg-rose-200 dark:hover:bg-rose-800/40'}`;
+      b.className = `parking-spot inline-flex items-center px-2 py-1 text-xs rounded-full ring-1 me-2 mb-2 cursor-default interactive-element ${livre ? 'bg-emerald-100 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:ring-emerald-700/40 hover:bg-emerald-200 dark:hover:bg-emerald-800/40 available' : 'bg-rose-100 text-rose-700 ring-rose-200 dark:bg-rose-900/40 dark:text-rose-300 dark:ring-rose-700/40 cursor-pointer hover:bg-rose-200 dark:hover:bg-rose-800/40'}`;
       b.textContent = `Vaga ${i}`;
       if (!livre) {
         const reg = ocupacaoPorVaga.get(i);
@@ -148,7 +152,7 @@ async function carregarStatus() {
     tbody.innerHTML = '';
     s.ocupacoes.forEach(o => {
       const tr = document.createElement('tr');
-      tr.className = 'hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-all duration-300';
+      tr.className = 'table-row hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-all duration-300';
       const dtEntrada = new Date(o.entrada);
       tr.innerHTML = `
         <td class="py-2 pr-4"><span class="inline-flex items-center px-2 py-0.5 text-xs rounded-md bg-slate-200 text-slate-700 dark:bg-slate-600/60 dark:text-slate-200">${o.numeroVaga}</span></td>
@@ -197,16 +201,24 @@ $('#formEntrada').addEventListener('submit', async (e) => {
   e.preventDefault();
   const form = e.currentTarget;
   
-  // Add loading state to submit button
+  // Adiciona classe de animação nos inputs
+  form.querySelectorAll('input, select').forEach(input => {
+    input.classList.add('form-input');
+  });
+  
+  // Adiciona estado de loading no botão com animação
   const submitBtn = form.querySelector('button[type="submit"]');
   const originalText = submitBtn.textContent;
   submitBtn.disabled = true;
+  submitBtn.classList.add('animated-button');
   submitBtn.innerHTML = `
-    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-    </svg>
-    Registrando...
+    <div class="flex items-center justify-center">
+      <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span class="animate__animated animate__fadeIn">Registrando...</span>
+    </div>
   `;
   
   const dados = Object.fromEntries(new FormData(form).entries());
@@ -258,8 +270,11 @@ $('#btnAtualizarCapacidade').addEventListener('click', async () => {
 });
 
 // Inicialização
-carregarStatus();
-setInterval(carregarStatus, 10000);
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Iniciando carregamento do status...');
+    carregarStatus();
+    setInterval(carregarStatus, 10000);
+});
 
 // UI dinâmica: esconder/mostrar placa conforme tipo
 document.addEventListener('DOMContentLoaded', () => {
@@ -352,12 +367,12 @@ function countUp(el, to) {
   const target = Number(to) || 0;
   if (reduce) { el.textContent = String(target); return; }
   const start = performance.now();
-  const dur = 1000; // Increased duration for better effect
-  const easeOutCubic = t => 1 - Math.pow(1 - t, 3); // Smooth easing function
+  const dur = 1500; // Increased duration for smoother animation
+  const easeOutQuart = t => 1 - Math.pow(1 - t, 4); // Função de easing mais suave
   
   function step(t) {
     const p = Math.min(1, (t - start) / dur);
-    const easedProgress = easeOutCubic(p);
+    const easedProgress = easeOutQuart(p);
     const val = Math.round(from + (target - from) * easedProgress);
     el.textContent = String(val);
     
