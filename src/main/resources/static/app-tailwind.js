@@ -87,15 +87,28 @@ function toast(msg, type='info') {
     danger: 'bg-rose-600',
   };
   const el = document.createElement('div');
-  el.className = `px-4 py-2 text-sm text-white rounded-lg shadow ${colors[type]||colors.info} animate-[fadeIn_.2s_ease-out]`;
+  el.className = `px-4 py-2 text-sm text-white rounded-lg shadow ${colors[type]||colors.info} toast-enter`;
   el.textContent = msg;
   const cont = $('#toast-container');
+  
+  // Add icon based on type
+  const icons = {
+    info: '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
+    success: '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
+    warning: '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>',
+    danger: '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>'
+  };
+  
+  const wrapper = document.createElement('div');
+  wrapper.className = 'flex items-center';
+  wrapper.innerHTML = icons[type] || icons.info;
+  wrapper.appendChild(document.createTextNode(msg));
+  el.appendChild(wrapper);
+  
   cont.appendChild(el);
-  // subtle pop
-  el.style.transform = 'scale(0.98)';
-  requestAnimationFrame(() => { el.style.transition = 'transform .18s ease'; el.style.transform = 'scale(1)'; });
+  
   setTimeout(() => {
-    el.classList.add('opacity-0','transition','duration-300');
+    el.classList.add('opacity-0', 'transition-all', 'duration-300', 'translate-y-2');
     setTimeout(() => el.remove(), 300);
   }, 2600);
 }
@@ -118,7 +131,7 @@ async function carregarStatus() {
     for (let i = 1; i <= s.capacidade; i++) {
       const livre = !ocupadasSet.has(i);
       const b = document.createElement('span');
-      b.className = `inline-flex items-center px-2 py-1 text-xs rounded-full ring-1 me-2 mb-2 cursor-default ${livre ? 'bg-emerald-100 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:ring-emerald-700/40' : 'bg-rose-100 text-rose-700 ring-rose-200 dark:bg-rose-900/40 dark:text-rose-300 dark:ring-rose-700/40 cursor-pointer'}`;
+      b.className = `inline-flex items-center px-2 py-1 text-xs rounded-full ring-1 me-2 mb-2 cursor-default transition-all duration-300 hover-scale ${livre ? 'bg-emerald-100 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:ring-emerald-700/40 hover:bg-emerald-200 dark:hover:bg-emerald-800/40' : 'bg-rose-100 text-rose-700 ring-rose-200 dark:bg-rose-900/40 dark:text-rose-300 dark:ring-rose-700/40 cursor-pointer hover:bg-rose-200 dark:hover:bg-rose-800/40'}`;
       b.textContent = `Vaga ${i}`;
       if (!livre) {
         const reg = ocupacaoPorVaga.get(i);
@@ -135,7 +148,7 @@ async function carregarStatus() {
     tbody.innerHTML = '';
     s.ocupacoes.forEach(o => {
       const tr = document.createElement('tr');
-      tr.className = 'hover:bg-slate-100 dark:hover:bg-slate-800/40';
+      tr.className = 'hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-all duration-300';
       const dtEntrada = new Date(o.entrada);
       tr.innerHTML = `
         <td class="py-2 pr-4"><span class="inline-flex items-center px-2 py-0.5 text-xs rounded-md bg-slate-200 text-slate-700 dark:bg-slate-600/60 dark:text-slate-200">${o.numeroVaga}</span></td>
@@ -183,6 +196,19 @@ $('#btnAtualizar').addEventListener('click', carregarStatus);
 $('#formEntrada').addEventListener('submit', async (e) => {
   e.preventDefault();
   const form = e.currentTarget;
+  
+  // Add loading state to submit button
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const originalText = submitBtn.textContent;
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = `
+    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+    Registrando...
+  `;
+  
   const dados = Object.fromEntries(new FormData(form).entries());
   // Ajuste de placa conforme tipo
   const tipo = String(dados.tipo || '').toUpperCase();
@@ -195,7 +221,17 @@ $('#formEntrada').addEventListener('submit', async (e) => {
   }
   const resp = await api.entrada(dados);
   if (resp.erro) toast(resp.erro, 'danger'); else toast(`Entrada na vaga ${resp.numeroVaga}`, 'success');
-  form.reset();
+  // Reset button state after slight delay
+  setTimeout(() => {
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalText;
+    form.reset();
+    
+    // Add success animation to form
+    form.classList.add('animate-fade-in-scale');
+    setTimeout(() => form.classList.remove('animate-fade-in-scale'), 500);
+  }, 500);
+  
   carregarStatus();
 });
 
@@ -252,31 +288,60 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!btn) return;
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce) return;
-    const circle = document.createElement('span');
-    const rect = btn.getBoundingClientRect();
-    const size = Math.max(rect.width, rect.height);
-    circle.style.width = circle.style.height = size + 'px';
-    circle.style.position = 'absolute';
-    circle.style.left = (e.clientX - rect.left - size / 2) + 'px';
-    circle.style.top = (e.clientY - rect.top - size / 2) + 'px';
-    circle.style.background = 'rgba(255,255,255,.25)';
-    circle.style.borderRadius = '50%';
-    circle.style.pointerEvents = 'none';
-    circle.style.transform = 'scale(0)';
-    circle.style.transition = 'transform .4s ease, opacity .6s ease';
-    circle.className = 'btn-ripple';
-    btn.style.position = 'relative';
-    btn.style.overflow = 'hidden';
-    btn.appendChild(circle);
-    requestAnimationFrame(() => { circle.style.transform = 'scale(1)'; circle.style.opacity = '0'; });
-    setTimeout(() => circle.remove(), 650);
+    
+    // Enhanced ripple effect with multiple circles
+    const createRipple = () => {
+      const circle = document.createElement('span');
+      const rect = btn.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height) * 2;
+      circle.style.width = circle.style.height = size + 'px';
+      circle.style.position = 'absolute';
+      circle.style.left = (e.clientX - rect.left - size / 2) + 'px';
+      circle.style.top = (e.clientY - rect.top - size / 2) + 'px';
+      
+      // Random subtle color variation for multi-ripple effect
+      const hue = Math.random() * 20 - 10; // ±10 hue variation
+      circle.style.background = `hsla(${hue}, 100%, 100%, 0.25)`;
+      circle.style.borderRadius = '50%';
+      circle.style.pointerEvents = 'none';
+      circle.style.transform = 'scale(0)';
+      circle.style.transition = 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+      circle.className = 'btn-ripple';
+      
+      btn.style.position = 'relative';
+      btn.style.overflow = 'hidden';
+      btn.appendChild(circle);
+      
+      requestAnimationFrame(() => {
+        circle.style.transform = 'scale(1)';
+        circle.style.opacity = '0';
+      });
+      
+      setTimeout(() => circle.remove(), 650);
+    };
+    
+    // Create multiple ripples with slight delay
+    createRipple();
+    setTimeout(createRipple, 50);
+    setTimeout(createRipple, 100);
   });
 });
 
 // Skeletons e countUp helpers
 function showSkeleton(on) {
   const ids = ['skt-capacidade','skt-ocupadas','skt-disponiveis','skt-tabela'];
-  ids.forEach(id => { const el = document.getElementById(id); if (el) el.classList.toggle('hidden', !on); });
+  ids.forEach((id, index) => { 
+    const el = document.getElementById(id); 
+    if (el) {
+      if (on) {
+        el.classList.remove('hidden');
+        el.style.animation = `shimmer 1.2s linear infinite ${index * 0.1}s`;
+      } else {
+        el.classList.add('hidden');
+        el.style.animation = '';
+      }
+    }
+  });
 }
 
 function countUp(el, to) {
@@ -287,11 +352,21 @@ function countUp(el, to) {
   const target = Number(to) || 0;
   if (reduce) { el.textContent = String(target); return; }
   const start = performance.now();
-  const dur = 500;
+  const dur = 1000; // Increased duration for better effect
+  const easeOutCubic = t => 1 - Math.pow(1 - t, 3); // Smooth easing function
+  
   function step(t) {
     const p = Math.min(1, (t - start) / dur);
-    const val = Math.round(from + (target - from) * p);
+    const easedProgress = easeOutCubic(p);
+    const val = Math.round(from + (target - from) * easedProgress);
     el.textContent = String(val);
+    
+    // Add pulse effect when reaching target
+    if (p >= 0.99) {
+      el.classList.add('pulse-on-success');
+      setTimeout(() => el.classList.remove('pulse-on-success'), 1500);
+    }
+    
     if (p < 1) requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
