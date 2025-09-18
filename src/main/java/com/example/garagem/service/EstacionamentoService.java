@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class EstacionamentoService {
-    private int capacidade = 20; // padrão
+    private int capacidade = 30; // padrão
     private final Map<Integer, Registro> ocupacoes = new HashMap<>(); // vaga -> registro
     private final Map<String, Integer> placaParaVaga = new HashMap<>(); // placa -> vaga
 
